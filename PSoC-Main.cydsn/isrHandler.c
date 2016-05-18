@@ -139,7 +139,7 @@ int compRxEventHandler() {
         case campanhi:
             Payload.cameraPan |= byte << 8;
             compRxState = camtiltlo;
-            PWM_Gimbal_WriteCompare1(Payload.cameraPan);
+            //PWM_Gimbal_WriteCompare1(Payload.cameraPan);
             compRxState = camtiltlo; // change state
             break;
         case camtiltlo:
@@ -148,12 +148,12 @@ int compRxEventHandler() {
             break;
         case camtilthi:
             Payload.cameraTilt |= byte << 8;
-            PWM_Gimbal_WriteCompare2(Payload.cameraTilt);
+            //PWM_Gimbal_WriteCompare2(Payload.cameraTilt);
             compRxState = camSelect; // change state
             break;
         case camSelect:
-            // update camera number in packet to send to slave PSoC
-            PSoC_Slave_Payload.camSelect = byte;
+            // update camera feed
+            selectCameras(byte);
             compRxState = turretlo; // change state
             break;
         case turretlo:
@@ -475,6 +475,41 @@ void updateForearmPos() {
     }
 }
 
+void selectCameras(uint8_t byte) {
+    uint8_t v1 = byte & 0x0f;
+    uint8_t v2 = (byte & 0xf0) >> 4;
+    switch(v1)
+    {
+        case 0:
+            PWM_Video_WriteCompare1(VIDEO1);
+            break;
+        case 1:
+            PWM_Video_WriteCompare1(VIDEO2);
+            break;
+        case 2:
+            PWM_Video_WriteCompare1(VIDEO3);
+            break;
+        default:
+            PWM_Video_WriteCompare1(VIDEO1);
+            break;
+    }
+    switch(v2)
+    {
+        case 0:
+            PWM_Video_WriteCompare2(VIDEO1);
+            break;
+        case 1:
+            PWM_Video_WriteCompare2(VIDEO2);
+            break;
+        case 2:
+            PWM_Video_WriteCompare2(VIDEO3);
+            break;
+        default:
+            PWM_Video_WriteCompare2(VIDEO1);
+            break;
+    }
+}
+
 // ===========================================================================
 // Helper and debug function definitions
 // ===========================================================================
@@ -572,6 +607,22 @@ static void handMsg(enum hand_e handPos) {
         PSoC_Slave_Payload.hand = 0x00;
         break;
     }
+}
+
+void sendDummySlaveCmd(uint8_t hand, uint8_t cam1, uint8_t cam2,
+    uint8_t chuteSelect) {
+    // hand: 0 = open, 1 = close, 2 = halt => 0x05, 0x06, 0x00
+    handMsg(hand);
+    PSoC_Slave_Payload.camSelect = (cam1 & 0x0f) | ((cam2 & 0x0f) << 4);
+    PSoC_Slave_Payload.chuteSelect = chuteSelect;
+    psocSlaveCmd();
+    static uint8_t cmd[5];
+    cmd[0] = 0xd8; // preamble first byte
+    cmd[1] = 0xc4; // preamble second byte
+    cmd[2] = PSoC_Slave_Payload.hand;
+    cmd[3] = PSoC_Slave_Payload.camSelect;
+    cmd[4] = PSoC_Slave_Payload.chuteSelect;
+    UART_Computer_PutArray(cmd, 5);
 }
 
 /* [] END OF FILE */

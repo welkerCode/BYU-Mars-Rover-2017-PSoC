@@ -92,8 +92,11 @@ void shovelTest();
 // an automated test to actuate the solenoids to open/close the chute doors
 void chuteTest();
 
-// an automated test to move the gimbal (main camera pan and tilt)
-void gimbalTest();
+// an automated test to switch between camera feeds
+void cameraTest();
+
+// an automated test that periodically sends packets to the psoc slave
+void psocSlaveTest();
 
 // a function that resets everything
 void resetAll();
@@ -110,8 +113,9 @@ int main() {
         //handTest();
         //shovelTest();
         //chuteTest();
-        //gimbalTest();
-        eventLoop();
+        cameraTest();
+        //psocSlaveTest();
+        //eventLoop();
     }
 }
 
@@ -186,8 +190,8 @@ void eventLoop() {
 // turns off arm motors and resets servos to neutral position.
 void resetAll() {
     
-    PWM_Gimbal_WriteCompare1(SERVO_NEUTRAL);
-    PWM_Gimbal_WriteCompare2(SERVO_NEUTRAL);
+    PWM_Video_WriteCompare1(VIDEO1);
+    PWM_Video_WriteCompare2(VIDEO2);
     PWM_Drive_WriteCompare1(SERVO_NEUTRAL);
     PWM_Drive_WriteCompare2(SERVO_NEUTRAL);
     
@@ -256,7 +260,7 @@ void multiJointTest() {
             pololuControl_driveMotor(forearm, POLOLUCONTROL_FOREARM);
             CyDelay(5000);           
         }
-    } 
+    }
 }
 
 // automated test that opens and closes the hand
@@ -295,24 +299,6 @@ void shovelTest() {
     }
 }
 
-// an automated test to move the gimbal (main camera pan and tilt)
-void gimbalTest() {
-    while (1) {
-        PWM_Gimbal_WriteCompare1(SERVO_NEUTRAL);
-        PWM_Gimbal_WriteCompare2(SERVO_NEUTRAL);
-        TOGGLE_LED0;
-        CyDelay(4000);
-        PWM_Gimbal_WriteCompare1(SERVO_MIN);
-        PWM_Gimbal_WriteCompare2(SERVO_MIN);
-        TOGGLE_LED0;
-        CyDelay(4000);
-        PWM_Gimbal_WriteCompare1(SERVO_MAX);
-        PWM_Gimbal_WriteCompare2(SERVO_MAX);
-        TOGGLE_LED0;
-        CyDelay(4000);
-    }
-}
-
 void init() {
         // 5 second delay before we start everything up
     CyDelay(5000);
@@ -337,10 +323,10 @@ void init() {
     PWM_Drive_WriteCompare1(SERVO_NEUTRAL);
     PWM_Drive_WriteCompare2(SERVO_NEUTRAL);
     
-    // gimbal (main camera pan/tilt)
-    PWM_Gimbal_Start();
-    PWM_Gimbal_WriteCompare1(SERVO_NEUTRAL);
-    PWM_Gimbal_WriteCompare2(SERVO_NEUTRAL);
+    // video
+    PWM_Video_Start();
+    PWM_Video_WriteCompare1(VIDEO1);
+    PWM_Video_WriteCompare2(VIDEO1);
     
     // clock for all other uart modules
     UARTClk_Start();
@@ -386,6 +372,38 @@ void init() {
     PWM_BoxLid_WriteCompare(SERVO_NEUTRAL);
     
     LED0_Write(1); // done initializing
+}
+
+// an automated test to switch between camera feeds
+void cameraTest() {
+    while(1) {
+        selectCameras(0x00);
+        CyDelay(8000);
+        TOGGLE_LED0;
+        selectCameras(0x11);
+        CyDelay(8000);
+        TOGGLE_LED0;
+        selectCameras(0x22);
+        CyDelay(8000);
+        TOGGLE_LED0;
+    }
+}
+
+void psocSlaveTest() {
+    uint8_t hand, cam1, cam2, chuteSelect;
+    hand = cam1 = cam2 = 0;
+    chuteSelect = 1;
+    while(1) {
+        CyDelay(10000);
+        TOGGLE_LED0;
+        sendDummySlaveCmd(hand, cam1, cam2, chuteSelect);
+        hand++; cam1++; cam2++;
+        if (hand > 2) hand = 0;
+        if (cam1 > 2) cam1 = 0;
+        if (cam2 > 2) cam2 = 0;
+        chuteSelect <<= 1;
+        if (chuteSelect & 0xc0) chuteSelect = 1;
+    }
 }
 
 /* [] END OF FILE */

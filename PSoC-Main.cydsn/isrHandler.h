@@ -18,6 +18,13 @@ void updateShoulderPos();
 void updateElbowPos();
 void updateForearmPos();
 
+// Selects camera feeds
+void selectCameras(uint8_t byte);
+
+// Sends test packet to psoc slave - just for debugging and testing
+void sendDummySlaveCmd(uint8_t hand, uint8_t cam1, uint8_t cam2,
+    uint8_t chuteSelect);
+
 // event variables
 extern volatile uint32_t events;
 
@@ -47,10 +54,9 @@ void driveHand(uint16_t pos);
 #define MESSAGE_ERROR 2
 
 // PWM values for video mux out of 5 video selects
-#define VIDEO1 500
-#define VIDEO2 1000
-#define VIDEO3 1500
-#define VIDEO4 2000
+#define VIDEO1 1100
+#define VIDEO2 1500
+#define VIDEO3 1900
 
 #endif
 /* [] END OF FILE */

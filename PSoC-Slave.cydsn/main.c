@@ -18,16 +18,21 @@
 #define RX_EVENT 0x01
 #define HEARTBEAT_EVENT 0x08
 
+#define VIDEO1 1100 // 0.9 - 1.35 ms
+#define VIDEO2 1500 // 1.35 - 1.75 ms
+#define VIDEO3 1900 // 1.75 - 2.1 ms
+
 // ===========================================================================
 // Global variables
 // ===========================================================================
 static uint16_t sys_event = 0;
-static enum { pre1, pre2, hand, cam_sel, chutes } state = 0;
+static enum { pre1, pre2, hand, cam_sel, chutes } state = pre1;
 
 // ===========================================================================
 // Function prototypes
 // ===========================================================================
 
+void event_loop();
 void rx_event_handler();
 void init();
 void update_hand(uint8_t byte);
@@ -43,7 +48,31 @@ int main()
 {
     init();
     // event loop
-    while(1) 
+    while(1)
+    {
+        //event_loop();
+        
+        PWM_Video_WriteCompare1(VIDEO1);
+        PWM_Video_WriteCompare2(VIDEO1);
+        LED1_TOGGLE;
+        CyDelay(8000);
+        
+        PWM_Video_WriteCompare1(VIDEO2);
+        PWM_Video_WriteCompare2(VIDEO2);
+        LED1_TOGGLE;
+        CyDelay(8000);
+        
+        PWM_Video_WriteCompare1(VIDEO3);
+        PWM_Video_WriteCompare2(VIDEO3);
+        LED1_TOGGLE;
+        CyDelay(8000);
+        
+    }
+}
+
+void event_loop()
+{
+    while(1)
     {
         if (sys_event)
         {
@@ -51,12 +80,12 @@ int main()
             {
                 sys_event &= ~RX_EVENT; // clear event
                 rx_event_handler(); // call event handler
-                LED1_TOGGLE;
+                //LED1_TOGGLE;
             }
             else if (sys_event & HEARTBEAT_EVENT)
             {
                 sys_event &= ~HEARTBEAT_EVENT;
-                LED1_ON;
+                //LED1_ON;
             }
         }
     }
@@ -64,6 +93,8 @@ int main()
 
 void init()
 {
+    LED1_OFF;
+    CyDelay(5000);
     // init variables
     sys_event = 0; // no pending events
     state = pre1;
@@ -73,6 +104,10 @@ void init()
     CamMux1_Select(0);
     CamMux2_Start();
     CamMux2_Select(0);
+    
+    // start pwm
+    Clock_2_Start();
+    PWM_Video_Start();
     
     // init chutes - enable and turn off both a and b
     chute1a_Write(0);
@@ -125,18 +160,21 @@ static void psocSlaveCmd() {
 */
 void rx_event_handler()
 {
-    uint16_t data = UART1_GetByte();
-    // Error in upper byte
-    if (data & 0xff00)
-    {
-        return; // error
-    }
-    
     // Continue in this loop while bytes are available
     while(UART1_GetRxBufferSize() ||
         (UART1_ReadRxStatus() & UART1_RX_STS_FIFO_NOTEMPTY))
     {
+		uint16_t data = UART1_GetByte();
+		// Error in upper byte
+		if (data & 0xff00)
+		{
+			return; // error
+		}
         uint8_t byte = data & 0xff;
+        
+        // DEBUG: echo character
+        UART1_PutChar(byte);
+        
         switch(state)
         {
         case pre1:
@@ -147,13 +185,15 @@ void rx_event_handler()
             if (byte == 0xc4)
                 state = hand;
             else
-                state = hand;
+                state = pre1;
+            break; 
         case hand:
             update_hand(byte);
             state = cam_sel;
             break;
         case cam_sel:
             select_camera(byte);
+            state = chutes;
             break;
         case chutes:
             control_chutes(byte);
@@ -182,6 +222,39 @@ void select_camera(uint8_t byte)
     // low nybble: camera 1; high nybble: camera 2
     CamMux1_Select(byte & 0x0f);
     CamMux2_Select((byte & 0xf0) >> 4);
+    
+    uint8_t v1 = byte & 0x0f;
+    uint8_t v2 = (byte & 0xf0) >> 4;
+    switch(v1)
+    {
+        case 0:
+            PWM_Video_WriteCompare1(VIDEO1);
+            break;
+        case 1:
+            PWM_Video_WriteCompare1(VIDEO2);
+            break;
+        case 2:
+            PWM_Video_WriteCompare1(VIDEO3);
+            break;
+        default:
+            PWM_Video_WriteCompare1(VIDEO1);
+            break;
+    }
+    switch(v2)
+    {
+        case 0:
+            PWM_Video_WriteCompare2(VIDEO1);
+            break;
+        case 1:
+            PWM_Video_WriteCompare2(VIDEO2);
+            break;
+        case 2:
+            PWM_Video_WriteCompare2(VIDEO3);
+            break;
+        default:
+            PWM_Video_WriteCompare2(VIDEO1);
+            break;
+    }
 }
 
 void control_chutes(uint8_t byte)
@@ -200,7 +273,7 @@ void control_chutes(uint8_t byte)
         chute1b_Write(1);
     }
     // chute 2
-    if (byte & 0x1) // close
+    if ((byte & 0x1) >> 1) // close
     {
         chute2b_Write(0);
         chute2a_Write(1);
@@ -211,7 +284,7 @@ void control_chutes(uint8_t byte)
         chute2b_Write(1);
     }
     // chute 3
-    if (byte & 0x1) // close
+    if ((byte & 0x1) >> 2) // close
     {
         chute3b_Write(0);
         chute3a_Write(1);
@@ -222,7 +295,7 @@ void control_chutes(uint8_t byte)
         chute3b_Write(1);
     }
     // chute 4
-    if (byte & 0x1) // close
+    if ((byte & 0x1) >> 3) // close
     {
         chute4b_Write(0);
         chute4a_Write(1);
@@ -233,7 +306,7 @@ void control_chutes(uint8_t byte)
         chute4b_Write(1);
     }
     // chute 5
-    if (byte & 0x1) // close
+    if ((byte & 0x1) >> 4) // close
     {
         chute5b_Write(0);
         chute5a_Write(1);
@@ -244,7 +317,7 @@ void control_chutes(uint8_t byte)
         chute5b_Write(1);
     }
     // chute 6
-    if (byte & 0x1) // close
+    if ((byte & 0x1) >> 5) // close
     {
         chute6b_Write(0);
         chute6a_Write(1);
@@ -259,8 +332,10 @@ void control_chutes(uint8_t byte)
 // Received a character from main PSoC
 CY_ISR(uart_rx_isr)
 {
-    UART1_ReadRxStatus(); // clear interrupt
+    //UART1_ReadRxStatus(); // clear interrupt
+    UART1_GetRxInterruptSource();
     rxisr_ClearPending();
+    LED1_TOGGLE;
     
     sys_event |= RX_EVENT; // queue event
 }
