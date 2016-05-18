@@ -98,9 +98,10 @@ void cameraTest();
 // an automated test that periodically sends packets to the psoc slave
 void psocSlaveTest();
 
-// a function that resets everything
+// reset all actuators
 void resetAll();
 
+// initialize
 void init();
 
 int main() {
@@ -112,10 +113,10 @@ int main() {
         //multiJointTest();
         //handTest();
         //shovelTest();
-        chuteTest();
+        //chuteTest();
         //cameraTest();
         //psocSlaveTest();
-        //eventLoop();
+        eventLoop();
     }
 }
 
@@ -202,6 +203,26 @@ void resetAll() {
     
     PWM_Hand_WriteCompare(SERVO_NEUTRAL);
     PWM_Excavator_WriteCompare(SERVO_NEUTRAL);
+    
+    // init chutes - turn off all
+    chute_en_Write(0);
+    chute1a_Write(0);
+    chute1b_Write(0);
+    
+    chute2a_Write(0);
+    chute2b_Write(0);
+
+    chute3a_Write(0);
+    chute3b_Write(0);
+    
+    chute4a_Write(0);
+    chute4b_Write(0);
+    
+    chute5a_Write(0);
+    chute5b_Write(0);
+    
+    chute6a_Write(0);
+    chute6b_Write(0);
     
     LED0_Write(1);
 }
@@ -371,30 +392,25 @@ void init() {
     PWM_BoxLid_Start();
     PWM_BoxLid_WriteCompare(SERVO_NEUTRAL);
     
-    // init chutes - enable and turn off both a and b
+    // init chutes - disable and turn off all
+    chute_en_Write(0);
     chute1a_Write(0);
     chute1b_Write(0);
-    chute1_en_Write(1);
     
     chute2a_Write(0);
     chute2b_Write(0);
-    chute2_en_Write(1);
 
     chute3a_Write(0);
     chute3b_Write(0);
-    chute3_en_Write(1);
     
     chute4a_Write(0);
     chute4b_Write(0);
-    chute4_en_Write(1);
     
     chute5a_Write(0);
     chute5b_Write(0);
-    chute5_en_Write(1);
     
     chute6a_Write(0);
     chute6b_Write(0);
-    chute6_en_Write(1);
     
     LED0_Write(1); // done initializing
 }
@@ -434,10 +450,11 @@ void psocSlaveTest() {
 // an automated test to open/close the chutes
 void chuteTest() {
     uint8_t chute;
+    chute_en_Write(1);
     
     while(1) {
         chute = 1;
-        while (chute & 0x0f) {
+        while (chute & 0x3f) {
             control_chutes(chute);
             chute <<= 1;
             TOGGLE_LED0;

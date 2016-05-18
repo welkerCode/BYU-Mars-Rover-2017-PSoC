@@ -239,10 +239,18 @@ int compRxEventHandler() {
             break;
         case chutes:
             // the chute values are packed into the first 6 bits of the byte
+            // chute enable is the 7th bit
             PSoC_Slave_Payload.chuteSelect = byte & 0x3f;
-            
-            // box lid open/close is 7th bit
             if ((byte >> 6) & 0x01) {
+                chute_en_Write(1);
+                control_chutes(PSoC_Slave_Payload.chuteSelect);
+            }
+            else {
+                chute_en_Write(0);
+            }
+            
+            // box lid open/close is 8th bit
+            if ((byte >> 7) & 0x01) {
                 PWM_BoxLid_WriteCompare(SERVO_MIN); // open box
             }
             else {
