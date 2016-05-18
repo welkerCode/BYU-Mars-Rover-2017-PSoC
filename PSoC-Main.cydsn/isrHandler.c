@@ -275,17 +275,6 @@ int compRxEventHandler() {
     return SUCCESS; // success
 }
 
-// Drives hand to correct position: open, close, or middle
-void driveHand(uint16_t pos) {
-    if (pos < SERVO_MIN) {
-        pos = SERVO_MIN;
-    }
-    else if (pos > SERVO_MAX) {
-        pos = SERVO_MAX;
-    }
-    PWM_Hand_WriteCompare(pos);
-}
-
 void scienceEventHandler() {
     // Get feedback from science sensors: temperature and humidity
     enum states_e { pre0, pre1, templo, temphi, humlo, humhi };
@@ -381,6 +370,21 @@ void heartbeatEventHandler() {
     
     // Send command to PSoC slave
     psocSlaveCmd();
+}
+
+// ===========================================================================
+// Helper and debug function definitions
+// ===========================================================================
+
+// Drives hand to correct position: open, close, or middle
+void driveHand(uint16_t pos) {
+    if (pos < SERVO_MIN) {
+        pos = SERVO_MIN;
+    }
+    else if (pos > SERVO_MAX) {
+        pos = SERVO_MAX;
+    }
+    PWM_Hand_WriteCompare(pos);
 }
 
 // Update turret position
@@ -510,9 +514,77 @@ void selectCameras(uint8_t byte) {
     }
 }
 
-// ===========================================================================
-// Helper and debug function definitions
-// ===========================================================================
+void control_chutes(uint8_t byte)
+{
+    // chutes 1-6 are bits 0-5;
+    
+    // chute 1
+    if (byte & 0x1) // close
+    {
+        chute1b_Write(0);
+        chute1a_Write(1);
+    }
+    else // open
+    {
+        chute1a_Write(0);
+        chute1b_Write(1);
+    }
+    // chute 2
+    if ((byte & 0x2) >> 1) // close
+    {
+        chute2b_Write(0);
+        chute2a_Write(1);
+    }
+    else // open
+    {
+        chute2a_Write(0);
+        chute2b_Write(1);
+    }
+    // chute 3
+    if ((byte & 0x4) >> 2) // close
+    {
+        chute3b_Write(0);
+        chute3a_Write(1);
+    }
+    else // open
+    {
+        chute3a_Write(0);
+        chute3b_Write(1);
+    }
+    // chute 4
+    if ((byte & 0x8) >> 3) // close
+    {
+        chute4b_Write(0);
+        chute4a_Write(1);
+    }
+    else // open
+    {
+        chute4a_Write(0);
+        chute4b_Write(1);
+    }
+    // chute 5
+    if ((byte & 0x10) >> 4) // close
+    {
+        chute5b_Write(0);
+        chute5a_Write(1);
+    }
+    else // open
+    {
+        chute5a_Write(0);
+        chute5b_Write(1);
+    }
+    // chute 6
+    if ((byte & 0x20) >> 5) // close
+    {
+        chute6b_Write(0);
+        chute6a_Write(1);
+    }
+    else // open
+    {
+        chute6a_Write(0);
+        chute6b_Write(1);
+    }
+}
 
 // Send feedback to computer
 static void feedbackToOnboardComputer() {

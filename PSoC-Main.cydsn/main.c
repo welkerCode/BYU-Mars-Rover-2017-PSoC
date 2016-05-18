@@ -89,7 +89,7 @@ void multiJointTest();
 void handTest();
 void shovelTest();
 
-// an automated test to actuate the solenoids to open/close the chute doors
+// an automated test to open/close the chutes
 void chuteTest();
 
 // an automated test to switch between camera feeds
@@ -112,8 +112,8 @@ int main() {
         //multiJointTest();
         //handTest();
         //shovelTest();
-        //chuteTest();
-        cameraTest();
+        chuteTest();
+        //cameraTest();
         //psocSlaveTest();
         //eventLoop();
     }
@@ -371,6 +371,31 @@ void init() {
     PWM_BoxLid_Start();
     PWM_BoxLid_WriteCompare(SERVO_NEUTRAL);
     
+    // init chutes - enable and turn off both a and b
+    chute1a_Write(0);
+    chute1b_Write(0);
+    chute1_en_Write(1);
+    
+    chute2a_Write(0);
+    chute2b_Write(0);
+    chute2_en_Write(1);
+
+    chute3a_Write(0);
+    chute3b_Write(0);
+    chute3_en_Write(1);
+    
+    chute4a_Write(0);
+    chute4b_Write(0);
+    chute4_en_Write(1);
+    
+    chute5a_Write(0);
+    chute5b_Write(0);
+    chute5_en_Write(1);
+    
+    chute6a_Write(0);
+    chute6b_Write(0);
+    chute6_en_Write(1);
+    
     LED0_Write(1); // done initializing
 }
 
@@ -404,6 +429,43 @@ void psocSlaveTest() {
         chuteSelect <<= 1;
         if (chuteSelect & 0xc0) chuteSelect = 1;
     }
+}
+
+// an automated test to open/close the chutes
+void chuteTest() {
+    uint8_t chute;
+    
+    while(1) {
+        chute = 1;
+        while (chute & 0x0f) {
+            control_chutes(chute);
+            chute <<= 1;
+            TOGGLE_LED0;
+            CyDelay(7000);
+        }
+    }
+    
+    /*
+    while(1) {
+        chute2a_Write(0);
+        chute2b_Write(1);
+        TOGGLE_LED0;
+        CyDelay(8000);
+        
+        chute2b_Write(0);
+        TOGGLE_LED0;
+        CyDelay(2000);
+        
+        chute2b_Write(0);
+        chute2a_Write(1);
+        TOGGLE_LED0;
+        CyDelay(8000);
+        
+        chute2a_Write(0);
+        TOGGLE_LED0;
+        CyDelay(2000);
+    }
+    */
 }
 
 /* [] END OF FILE */
