@@ -115,8 +115,8 @@ int main() {
         //shovelTest();
         //chuteTest();
         //cameraTest();
-        psocSlaveTest();
-        //eventLoop();
+        //psocSlaveTest();
+        eventLoop();
     }
 }
 
