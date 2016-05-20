@@ -154,6 +154,7 @@ int compRxEventHandler() {
         case camSelect:
             // update camera feed
             selectCameras(byte);
+            
             compRxState = turretlo; // change state
             break;
         case turretlo:
@@ -384,7 +385,7 @@ void heartbeatEventHandler() {
 // Helper and debug function definitions
 // ===========================================================================
 
-// Drives hand to correct position: open, close, or middle
+// Control hand; do bounds checking 
 void driveHand(uint16_t pos) {
     if (pos < SERVO_MIN) {
         pos = SERVO_MIN;
@@ -490,6 +491,7 @@ void updateForearmPos() {
 void selectCameras(uint8_t byte) {
     uint8_t v1 = byte & 0x0f;
     uint8_t v2 = (byte & 0xf0) >> 4;
+    PSoC_Slave_Payload.camSelect = byte;
     switch(v1)
     {
         case 0:
@@ -639,6 +641,7 @@ static void feedbackToTerminal() {
     UART_Computer_PutString("\n\rhumid:");
     UART_Computer_PutString(hum);
 }
+
 // Sends pretend data out on science uart
 static void generateScienceTestData() {
     static uint16_t hum = 0;
