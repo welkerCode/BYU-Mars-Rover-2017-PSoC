@@ -115,8 +115,8 @@ int main() {
         //shovelTest();
         //chuteTest();
         //cameraTest();
-        //psocSlaveTest();
-        eventLoop();
+        psocSlaveTest();
+        //eventLoop();
     }
 }
 
@@ -376,6 +376,10 @@ void init() {
     UART_ScienceMCU_Start();
     ScienceRxIsr_StartEx(ScienceRxISR);
     
+    // psoc slave uart
+    Clock_1_Start();
+    UART_PSoC_Slave_Start();
+    
     //Initialize the dynamixels
 //    wristSpeed(0xFE, 300); // also only do once
 //    setWristTorque(0xFE, 0x03FF); // maximum
@@ -435,7 +439,7 @@ void psocSlaveTest() {
     hand = cam1 = cam2 = 0;
     chuteSelect = 1;
     while(1) {
-        CyDelay(10000);
+        CyDelay(8000);
         TOGGLE_LED0;
         sendDummySlaveCmd(hand, cam1, cam2, chuteSelect);
         hand++; cam1++; cam2++;

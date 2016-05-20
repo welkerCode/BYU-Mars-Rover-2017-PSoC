@@ -38,6 +38,7 @@ void init();
 void update_hand(uint8_t byte);
 void select_camera(uint8_t byte);
 void control_chutes(uint8_t byte);
+void pwm_cam_test();
 CY_ISR_PROTO(uart_rx_isr);
 CY_ISR_PROTO(heartbeat_isr);
 
@@ -50,23 +51,12 @@ int main()
     // event loop
     while(1)
     {
-        //event_loop();
-        
-        PWM_Video_WriteCompare1(VIDEO1);
-        PWM_Video_WriteCompare2(VIDEO1);
-        LED1_TOGGLE;
-        CyDelay(8000);
-        
-        PWM_Video_WriteCompare1(VIDEO2);
-        PWM_Video_WriteCompare2(VIDEO2);
-        LED1_TOGGLE;
-        CyDelay(8000);
-        
-        PWM_Video_WriteCompare1(VIDEO3);
-        PWM_Video_WriteCompare2(VIDEO3);
-        LED1_TOGGLE;
-        CyDelay(8000);
-        
+        event_loop();
+        //pwm_cam_test();
+        //UART1_PutChar('d');
+        //UART1_PutChar('\n');
+        //LED1_TOGGLE;
+        //CyDelay(1000);
     }
 }
 
@@ -109,31 +99,6 @@ void init()
     Clock_2_Start();
     PWM_Video_Start();
     
-    // init chutes - enable and turn off both a and b
-    chute1a_Write(0);
-    chute1b_Write(0);
-    chute1_en_Write(1);
-    
-    chute2a_Write(0);
-    chute2b_Write(0);
-    chute2_en_Write(1);
-
-    chute3a_Write(0);
-    chute3b_Write(0);
-    chute3_en_Write(1);
-    
-    chute4a_Write(0);
-    chute4b_Write(0);
-    chute4_en_Write(1);
-    
-    chute5a_Write(0);
-    chute5b_Write(0);
-    chute5_en_Write(1);
-    
-    chute6a_Write(0);
-    chute6b_Write(0);
-    chute6_en_Write(1);
-    
     // start uart
     UART1_Start();
     rxisr_StartEx(uart_rx_isr);
@@ -165,15 +130,14 @@ void rx_event_handler()
         (UART1_ReadRxStatus() & UART1_RX_STS_FIFO_NOTEMPTY))
     {
 		uint16_t data = UART1_GetByte();
+        // DEBUG: echo character
+        UART1_PutChar((uint8_t)(data & 0xff));
 		// Error in upper byte
 		if (data & 0xff00)
 		{
 			return; // error
 		}
         uint8_t byte = data & 0xff;
-        
-        // DEBUG: echo character
-        UART1_PutChar(byte);
         
         switch(state)
         {
@@ -186,7 +150,7 @@ void rx_event_handler()
                 state = hand;
             else
                 state = pre1;
-            break; 
+            break;
         case hand:
             update_hand(byte);
             state = cam_sel;
@@ -212,9 +176,6 @@ void update_hand(uint8_t byte)
     // en: enable the h-bridge
     // a: close
     // b: open
-    hand_en_Write((byte & 0x4) >> 2);
-    hand_open_Write(byte & 0x1);
-    hand_close_Write((byte & 0x2) >> 1);
 }
 
 void select_camera(uint8_t byte)
@@ -259,74 +220,7 @@ void select_camera(uint8_t byte)
 
 void control_chutes(uint8_t byte)
 {
-    // chutes 1-6 are bits 0-5;
-    
-    // chute 1
-    if (byte & 0x1) // close
-    {
-        chute1b_Write(0);
-        chute1a_Write(1);
-    }
-    else // open
-    {
-        chute1a_Write(0);
-        chute1b_Write(1);
-    }
-    // chute 2
-    if ((byte & 0x1) >> 1) // close
-    {
-        chute2b_Write(0);
-        chute2a_Write(1);
-    }
-    else // open
-    {
-        chute2a_Write(0);
-        chute2b_Write(1);
-    }
-    // chute 3
-    if ((byte & 0x1) >> 2) // close
-    {
-        chute3b_Write(0);
-        chute3a_Write(1);
-    }
-    else // open
-    {
-        chute3a_Write(0);
-        chute3b_Write(1);
-    }
-    // chute 4
-    if ((byte & 0x1) >> 3) // close
-    {
-        chute4b_Write(0);
-        chute4a_Write(1);
-    }
-    else // open
-    {
-        chute4a_Write(0);
-        chute4b_Write(1);
-    }
-    // chute 5
-    if ((byte & 0x1) >> 4) // close
-    {
-        chute5b_Write(0);
-        chute5a_Write(1);
-    }
-    else // open
-    {
-        chute5a_Write(0);
-        chute5b_Write(1);
-    }
-    // chute 6
-    if ((byte & 0x1) >> 5) // close
-    {
-        chute6b_Write(0);
-        chute6a_Write(1);
-    }
-    else // open
-    {
-        chute6a_Write(0);
-        chute6b_Write(1);
-    }
+
 }
 
 // Received a character from main PSoC
@@ -346,6 +240,24 @@ CY_ISR(heartbeat_isr)
     isr_1_ClearPending();
     
     sys_event |= HEARTBEAT_EVENT; // queue event
+}
+
+void pwm_cam_test()
+{
+    PWM_Video_WriteCompare1(VIDEO1);
+    PWM_Video_WriteCompare2(VIDEO1);
+    LED1_TOGGLE;
+    CyDelay(8000);
+    
+    PWM_Video_WriteCompare1(VIDEO2);
+    PWM_Video_WriteCompare2(VIDEO2);
+    LED1_TOGGLE;
+    CyDelay(8000);
+    
+    PWM_Video_WriteCompare1(VIDEO3);
+    PWM_Video_WriteCompare2(VIDEO3);
+    LED1_TOGGLE;
+    CyDelay(8000);
 }
 
 /* [] END OF FILE */
