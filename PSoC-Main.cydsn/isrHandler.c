@@ -239,19 +239,18 @@ int compRxEventHandler() {
             compRxState = chutes; // change state
             break;
         case chutes:
-            // the chute values are packed into the first 6 bits of the byte
-            // chute enable is the 7th bit
+            // byte: box open/close | chute_en | c6 | c5 | c4 | c3 | c2 | c1
             PSoC_Slave_Payload.chuteSelect = byte & 0x3f;
-            if ((byte >> 6) & 0x01) {
+            if (byte & 0x40) {
                 chute_en_Write(1);
-                control_chutes(PSoC_Slave_Payload.chuteSelect);
+                control_chutes(byte);
             }
             else {
                 chute_en_Write(0);
             }
             
             // box lid open/close is 8th bit
-            if ((byte >> 7) & 0x01) {
+            if (byte & 0x80) {
                 PWM_BoxLid_WriteCompare(SERVO_MIN); // open box
             }
             else {
@@ -540,7 +539,7 @@ void control_chutes(uint8_t byte)
         chute1b_Write(1);
     }
     // chute 2
-    if ((byte & 0x2) >> 1) // close
+    if (byte & 0x2) // close
     {
         chute2b_Write(0);
         chute2a_Write(1);
@@ -551,7 +550,7 @@ void control_chutes(uint8_t byte)
         chute2b_Write(1);
     }
     // chute 3
-    if ((byte & 0x4) >> 2) // close
+    if (byte & 0x4) // close
     {
         chute3b_Write(0);
         chute3a_Write(1);
@@ -562,7 +561,7 @@ void control_chutes(uint8_t byte)
         chute3b_Write(1);
     }
     // chute 4
-    if ((byte & 0x8) >> 3) // close
+    if (byte & 0x8) // close
     {
         chute4b_Write(0);
         chute4a_Write(1);
@@ -573,7 +572,7 @@ void control_chutes(uint8_t byte)
         chute4b_Write(1);
     }
     // chute 5
-    if ((byte & 0x10) >> 4) // close
+    if (byte & 0x10) // close
     {
         chute5b_Write(0);
         chute5a_Write(1);
@@ -584,7 +583,7 @@ void control_chutes(uint8_t byte)
         chute5b_Write(1);
     }
     // chute 6
-    if ((byte & 0x20) >> 5) // close
+    if (byte & 0x20) // close
     {
         chute6b_Write(0);
         chute6a_Write(1);

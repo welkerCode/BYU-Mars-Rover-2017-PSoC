@@ -431,6 +431,7 @@ void cameraTest() {
         selectCameras(0x22);
         CyDelay(8000);
         TOGGLE_LED0;
+        
     }
 }
 
