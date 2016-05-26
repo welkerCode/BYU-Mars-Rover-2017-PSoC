@@ -24,10 +24,6 @@ void selectCameras(uint8_t byte);
 // Controls the h-bridges
 void control_chutes(uint8_t byte);
 
-// Sends test packet to psoc slave - just for debugging and testing
-void sendDummySlaveCmd(uint8_t hand, uint8_t cam1, uint8_t cam2,
-    uint8_t chuteSelect);
-
 // event variables
 extern volatile uint32_t events;
 

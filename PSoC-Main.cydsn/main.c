@@ -115,7 +115,6 @@ int main() {
         //shovelTest();
         //chuteTest();
         //cameraTest();
-        //psocSlaveTest();
         eventLoop();
     }
 }
@@ -286,9 +285,7 @@ void multiJointTest() {
 
 // automated test that opens and closes the hand
 void handTest() {
-    
     while(1) {
-        //PWM_Hand_WriteCompare1(SERVO_MAX);
         PWM_Hand_WriteCompare(SERVO_NEUTRAL);
         TOGGLE_LED0;
         CyDelay(4000);
@@ -297,7 +294,7 @@ void handTest() {
         CyDelay(4000);
         PWM_Hand_WriteCompare(1950);
         TOGGLE_LED0;
-        CyDelay(30000);
+        CyDelay(4000);
     }
 }
 
@@ -376,15 +373,10 @@ void init() {
     UART_ScienceMCU_Start();
     ScienceRxIsr_StartEx(ScienceRxISR);
     
-    // psoc slave uart
-    Clock_1_Start();
-    UART_PSoC_Slave_Start();
-    
-    //Initialize the dynamixels
-//    wristSpeed(0xFE, 300); // also only do once
-//    setWristTorque(0xFE, 0x03FF); // maximum
-//    wristGoalPosition(WRIST_TILT_ID, 2048);
-//    wristGoalPosition(WRIST_ROTATE_ID, 2048);
+    // camera pan/tilt servo
+    PWM_PanTilt_Start();
+    PWM_PanTilt_WriteCompare1(SERVO_NEUTRAL);
+    PWM_PanTilt_WriteCompare2(SERVO_NEUTRAL);
     
     // hand pwm (also the heartbeat timer).
     PWM_Hand_Start();
@@ -416,6 +408,9 @@ void init() {
     chute6a_Write(0);
     chute6b_Write(0);
     
+    // rc camera initially disabled
+    rc_cam_en_Write(0);
+    
     LED0_Write(1); // done initializing
 }
 
@@ -432,23 +427,6 @@ void cameraTest() {
         CyDelay(8000);
         TOGGLE_LED0;
         
-    }
-}
-
-void psocSlaveTest() {
-    uint8_t hand, cam1, cam2, chuteSelect;
-    hand = cam1 = cam2 = 0;
-    chuteSelect = 1;
-    while(1) {
-        CyDelay(8000);
-        TOGGLE_LED0;
-        sendDummySlaveCmd(hand, cam1, cam2, chuteSelect);
-        hand++; cam1++; cam2++;
-        if (hand > 2) hand = 0;
-        if (cam1 > 2) cam1 = 0;
-        if (cam2 > 2) cam2 = 0;
-        chuteSelect <<= 1;
-        if (chuteSelect & 0xc0) chuteSelect = 1;
     }
 }
 
