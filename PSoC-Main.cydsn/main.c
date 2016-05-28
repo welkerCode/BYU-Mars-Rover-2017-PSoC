@@ -200,7 +200,6 @@ void resetAll() {
     pololuControl_turnMotorOff(POLOLUCONTROL_FOREARM);
     pololuControl_turnMotorOff(POLOLUCONTROL_ELBOW);
     
-    PWM_Hand_WriteCompare(SERVO_NEUTRAL);
     PWM_Excavator_WriteCompare(SERVO_NEUTRAL);
     
     // init chutes - turn off all
@@ -284,6 +283,7 @@ void multiJointTest() {
 }
 
 // automated test that opens and closes the hand
+/*
 void handTest() {
     while(1) {
         PWM_Hand_WriteCompare(SERVO_NEUTRAL);
@@ -297,6 +297,7 @@ void handTest() {
         CyDelay(4000);
     }
 }
+*/
 
 // automated test that opens and closes the hand
 void shovelTest() {
@@ -378,10 +379,14 @@ void init() {
     PWM_PanTilt_WriteCompare1(SERVO_NEUTRAL);
     PWM_PanTilt_WriteCompare2(SERVO_NEUTRAL);
     
-    // hand pwm (also the heartbeat timer).
-    PWM_Hand_Start();
-    PWM_Hand_WriteCompare(SERVO_NEUTRAL); // hand/temperature probe
+    // hand (don't move)
+    hand_a_Write(0);
+    hand_b_Write(0);
+    
+    // excavator
     PWM_Excavator_WriteCompare(SERVO_NEUTRAL); // excavator
+    
+    // Heartbeat ISR
     heartbeatIsr_StartEx(HeartbeatISR);
     
     // sample box pwm

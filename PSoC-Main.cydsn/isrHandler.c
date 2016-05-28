@@ -17,8 +17,6 @@ static void feedbackToTerminal();
 // Generates fake science data and outputs to UART
 static void generateScienceTestData();
 
-enum hand_e { open, close, halt };
-
 // Container for all events. See isrHandler.h for macros that define the events.
 volatile uint32_t events = 0;
 
@@ -189,24 +187,22 @@ int compRxEventHandler() {
                 POLOLUCONTROL_FOREARM);
             compRxState = wristtiltlo; // change state
             break;
+            
+            // TODO: remove wrist from packet on computer and PSoC
         case wristtiltlo:
-            Payload.wristTiltDest = byte;
+            
             compRxState = wristtilthi; // change state
             break;
         case wristtilthi:
-            Payload.wristTiltDest |= byte << 8;
-            // TODO: call dynamixel command
-            //wristGoalPosition(WRIST_TILT_ID, Payload.wristTiltDest);
+            
             compRxState = wristspinlo; // change state
             break;
         case wristspinlo:
-            Payload.wristSpinDest = byte;
+            
             compRxState = wristspinhi; // change state
             break;
         case wristspinhi:
-            Payload.wristSpinDest |= byte << 8;
-            // TODO: call dynamixel command
-            //wristGoalPosition(WRIST_ROTATE_ID, Payload.wristTiltDest);
+            
             compRxState = handlo; // change state
             break;
         case handlo:
@@ -360,15 +356,20 @@ void heartbeatEventHandler() {
 // Helper and debug function definitions
 // ===========================================================================
 
-// Control hand; do bounds checking 
+// Control hand
 void driveHand(uint16_t pos) {
-    if (pos < SERVO_MIN) {
-        pos = SERVO_MIN;
+    if (pos == 1) { // close
+        hand_a_Write(1);
+        hand_b_Write(0);
     }
-    else if (pos > SERVO_MAX) {
-        pos = SERVO_MAX;
+    else if (pos == 2) { // open
+        hand_b_Write(1);
+        hand_a_Write(0);
     }
-    PWM_Hand_WriteCompare(pos);
+    else { // don't move
+        hand_a_Write(0);
+        hand_b_Write(0);
+    }
 }
 
 // Update turret position
@@ -464,10 +465,15 @@ void updateForearmPos() {
 }
 
 void selectCameras(uint8_t byte) {
+    // byte: rc_en | x | v2[1:0] | x | x | v1[1:0]
+    // rc_en is rc camera enable
+    // v2 is second video feed
+    // v1 is first video feed
+    rc_cam_en_Write((byte & 0x80) >> 7);
+    
     uint8_t v1 = byte & 0x0f;
     uint8_t v2 = (byte & 0xf0) >> 4;
-    switch(v1)
-    {
+    switch(v1) {
         case 0:
             PWM_Video_WriteCompare1(VIDEO1);
             break;
@@ -481,8 +487,7 @@ void selectCameras(uint8_t byte) {
             PWM_Video_WriteCompare1(VIDEO1);
             break;
     }
-    switch(v2)
-    {
+    switch(v2) {
         case 0:
             PWM_Video_WriteCompare2(VIDEO1);
             break;
@@ -498,8 +503,7 @@ void selectCameras(uint8_t byte) {
     }
 }
 
-void control_chutes(uint8_t byte)
-{
+void control_chutes(uint8_t byte) {
     // chutes 1-6 are bits 0-5;
     
     // chute 1

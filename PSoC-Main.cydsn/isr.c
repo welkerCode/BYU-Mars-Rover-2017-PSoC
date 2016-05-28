@@ -73,7 +73,7 @@ CY_ISR(HeartbeatISR) {
     static unsigned count = 0;
     
     // clears interrupt on counter module
-    PWM_Hand_ReadStatusRegister();
+    PWM_Drive_ReadStatusRegister();
     heartbeatIsr_ClearPending();
     
     // Use count as a divider - only queue up event every 5 interrupts
