@@ -331,8 +331,8 @@ void heartbeatEventHandler() {
     #endif
 
     // Ask Arduino for science sensor data
-    UART_ScienceMCU_PutChar(0xae);
-    UART_ScienceMCU_PutChar(1);
+    UART_ScienceMCU_PutChar(0xae); // preamble
+    UART_ScienceMCU_PutChar(2); // laser on
     
     // Get Arm feedback:
     // Turret
@@ -358,11 +358,11 @@ void heartbeatEventHandler() {
 
 // Control hand
 void driveHand(uint16_t pos) {
-    if (pos == 1) { // close
+    if (pos == 1) { // open (retract linear actuators)
         hand_a_Write(1);
         hand_b_Write(0);
     }
-    else if (pos == 2) { // open
+    else if (pos == 2) { // close (extend linear actuators)
         hand_b_Write(1);
         hand_a_Write(0);
     }
