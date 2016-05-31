@@ -577,14 +577,14 @@ void control_chutes(uint8_t byte) {
 // Send feedback to computer
 static void feedbackToOnboardComputer() {
     feedbackArray[0] = 0xE3; // start byte;
-    feedbackArray[1] =  (turretPos & 0xff);
-    feedbackArray[2] = ((turretPos >> 8) & 0xff);
-    feedbackArray[3] =  (shoulderPos & 0xff);
-    feedbackArray[4] = ((shoulderPos >> 8) & 0xff);
-    feedbackArray[5] =  (elbowPos & 0xff);
-    feedbackArray[6] = ((elbowPos  >> 8) & 0xff);
-    feedbackArray[7] =  (forearmPos & 0xff);
-    feedbackArray[8] = ((forearmPos >> 8) & 0xff);
+    feedbackArray[1] = 1;// (turretPos & 0xff);
+    feedbackArray[2] = 0;//((turretPos >> 8) & 0xff);
+    feedbackArray[3] = 3;// (shoulderPos & 0xff);
+    feedbackArray[4] = 0;//((shoulderPos >> 8) & 0xff);
+    feedbackArray[5] = 4;// (elbowPos & 0xff);
+    feedbackArray[6] = 0;//((elbowPos  >> 8) & 0xff);
+    feedbackArray[7] = 4;// (forearmPos & 0xff);
+    feedbackArray[8] = 0;//((forearmPos >> 8) & 0xff);
 	feedbackArray[9] = ((temperature & 0xff));
 	feedbackArray[10] = ((temperature >> 8) & 0xff);
 	feedbackArray[11] =((humidity & 0xff));

@@ -384,6 +384,7 @@ void init() {
     hand_b_Write(0);
     
     // excavator
+    PWM_Excavator_Start();
     PWM_Excavator_WriteCompare(SERVO_NEUTRAL); // excavator
     
     // Heartbeat ISR
