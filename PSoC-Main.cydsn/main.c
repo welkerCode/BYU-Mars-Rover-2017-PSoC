@@ -98,6 +98,9 @@ void cameraTest();
 // an automated test that periodically sends packets to the psoc slave
 void psocSlaveTest();
 
+// an automated test thaat switchtes the electromagnet on and off
+void electromagnetTest();
+
 // reset all actuators
 void resetAll();
 
@@ -115,6 +118,7 @@ int main() {
         //shovelTest();
         //chuteTest();
         //cameraTest();
+        //electromagnetTest();
         eventLoop();
     }
 }
@@ -474,6 +478,14 @@ void chuteTest() {
         CyDelay(2000);
     }
     */
+}
+
+void electromagnetTest() {
+    while(1) {
+        electromagnet_Write(!electromagnet_Read());
+        TOGGLE_LED0;
+        CyDelay(5000);
+    }
 }
 
 /* [] END OF FILE */

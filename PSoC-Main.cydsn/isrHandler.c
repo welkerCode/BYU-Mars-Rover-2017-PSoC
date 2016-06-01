@@ -35,7 +35,8 @@ static struct Payload {
     uint16_t forearmDest;
     uint16_t wristTiltDest;
     uint16_t wristSpinDest;
-    uint16_t handDest;
+    uint8_t handDest;
+    uint8_t miscSwitches; // byte: xxxx x laser | electromagnet | dynamixels on/off
     uint16_t shovel;
 } Payload;
 /*
@@ -70,7 +71,7 @@ static enum compRxStates_e { pre0, leftlo, lefthi, rightlo, righthi, campanlo,
     campanhi, camtiltlo, camtilthi, camSelect, turretlo, turrethi, 
     shoulderlo, shoulderhi, elbowlo, elbowhi, forearmlo, forearmhi,
     wristtiltlo, wristtilthi, wristspinlo, wristspinhi, 
-    handlo, handhi, chutes, shovello, shovelhi } compRxState;
+    handlo, miscSwitch, chutes, shovello, shovelhi } compRxState;
 
 // Receive a message from the computer
 int compRxEventHandler() {
@@ -100,11 +101,15 @@ int compRxEventHandler() {
         
         // state machine
         switch(compRxState) {
+            
+            // Check preamble byte
         case pre0:
             if (byte == PREAMBLE0) {
                 compRxState = leftlo; // change state
             }
             break;
+            
+            // Actuate wheels - left and right
         case leftlo:
             Payload.leftWheels = byte;
             compRxState = lefthi; // change state
@@ -123,6 +128,8 @@ int compRxEventHandler() {
             PWM_Drive_WriteCompare2(Payload.rightWheels);
             compRxState = campanlo; // change state
             break;
+            
+            // Actuate pan/tilt camera
         case campanlo:
             Payload.cameraPan = byte;
             compRxState = campanhi; // change state
@@ -142,11 +149,14 @@ int compRxEventHandler() {
             PWM_PanTilt_WriteCompare2(Payload.cameraTilt);
             compRxState = camSelect; // change state
             break;
-        case camSelect:
+            
             // update camera feed
+        case camSelect:
             selectCameras(byte);
             compRxState = turretlo; // change state
             break;
+            
+            // Actuate first 4 arm joints: turret, shoulder, elbow, forearm
         case turretlo:
             Payload.turretDest = byte;
             compRxState = turrethi; // change state
@@ -188,37 +198,35 @@ int compRxEventHandler() {
             compRxState = wristtiltlo; // change state
             break;
             
-            // Using wrist tilt low byte for toggling laser on/off
+            // Do nothing with wrist data
         case wristtiltlo:
-            Payload.wristTiltDest = byte;
             compRxState = wristtilthi; // change state
             break;
-            
-            // Using wrist tilt high byte for electromagnet on/off
         case wristtilthi:
-            Payload.wristTiltDest |= byte << 8;
-            electromagnet_Write(byte);
             compRxState = wristspinlo; // change state
             break;
-            
-            // Using wrist rotate low byte for dynamixel on/off
         case wristspinlo:
-            Payload.wristSpinDest = byte;
             compRxState = wristspinhi; // change state
             break;
         case wristspinhi:
-            
             compRxState = handlo; // change state
             break;
+            
+            // actuate hand
         case handlo:
             Payload.handDest = byte; // get new hand value
-            compRxState = handhi; // change state
+            driveHand(Payload.handDest); // update hand position
+            compRxState = miscSwitch; // change state
             break;
-        case handhi:
-            Payload.handDest |= byte << 8; // finish getting new hand value
-            driveHand(Payload.handDest);
+            
+            // byte: xxxx x laser | electromagnet | dynamixels
+        case miscSwitch:
+            Payload.miscSwitches = byte;
+            electromagnet_Write((byte & 2) >> 1);
             compRxState = chutes; // change state
             break;
+            
+            // actuate chutes
         case chutes:
             // byte: box open/close | chute_en | c6 | c5 | c4 | c3 | c2 | c1
             if (byte & 0x40) {
@@ -238,6 +246,8 @@ int compRxEventHandler() {
             }
             compRxState = shovello; // change state
             break;
+            
+            // actuate shovel
         case shovello:
             Payload.shovel = byte;
             compRxState = shovelhi; // change state
@@ -245,7 +255,7 @@ int compRxEventHandler() {
         case shovelhi:
             Payload.shovel |= (byte << 8);
             PWM_Excavator_WriteCompare(Payload.shovel);
-            compRxState = pre0; // change state 
+            compRxState = pre0; // change state - return to beginning
             break;
         default:
             // shouldn't get here!!!
@@ -267,6 +277,7 @@ void scienceEventHandler() {
     // Get feedback from science sensors: temperature and humidity
     enum states_e { pre0, pre1, templo, temphi, humlo, humhi };
     static enum states_e state = templo;
+    static int16_t temp = 0; // temporary data storage
     
     // Read until finished getting all bytes in buffer
     while (UART_ScienceMCU_GetRxBufferSize() || 
@@ -278,7 +289,6 @@ void scienceEventHandler() {
         if (byte & 0xff00) {
             return; // Error - ignore byte
         }
-        static int16_t temp = 0; // temporary data storage
         
         switch (state) {
         // Preamble:
@@ -316,7 +326,7 @@ void scienceEventHandler() {
         case humhi:
             temp |= 0xff00 & (byte << 8);
             humidity = temp;
-            state = templo;
+            state = pre0;
             break;
         // Shouldn't ever get here
         default:
@@ -338,15 +348,14 @@ void heartbeatEventHandler() {
     // Ask Arduino for science sensor data
     UART_ScienceMCU_PutChar(0xae); // preamble
     UART_ScienceMCU_PutChar(1); // get feedback
-    if (Payload.wristSpinDest & 1) { // if this is set, turn dynamixels off
+    if (Payload.miscSwitches & 1) { // if this is set, turn dynamixels off
         UART_ScienceMCU_PutChar(5); // command to turn off dynamixels
     }
-    else if (Payload.wristTiltDest & 1) { // fire laser?
+    else if (Payload.miscSwitches & 4) { // fire laser?
         UART_ScienceMCU_PutChar(2);
-
     }
     else {
-        UART_ScienceMCU_PutChar(0);
+        UART_ScienceMCU_PutChar(10); // do nothing
     }
     
     // Get Arm feedback:
@@ -592,14 +601,14 @@ void control_chutes(uint8_t byte) {
 // Send feedback to computer
 static void feedbackToOnboardComputer() {
     feedbackArray[0] = 0xE3; // start byte;
-    feedbackArray[1] = 1;// (turretPos & 0xff);
-    feedbackArray[2] = 0;//((turretPos >> 8) & 0xff);
-    feedbackArray[3] = 3;// (shoulderPos & 0xff);
-    feedbackArray[4] = 0;//((shoulderPos >> 8) & 0xff);
-    feedbackArray[5] = 4;// (elbowPos & 0xff);
-    feedbackArray[6] = 0;//((elbowPos  >> 8) & 0xff);
-    feedbackArray[7] = 4;// (forearmPos & 0xff);
-    feedbackArray[8] = 0;//((forearmPos >> 8) & 0xff);
+    feedbackArray[1] = (turretPos & 0xff);
+    feedbackArray[2] = ((turretPos >> 8) & 0xff);
+    feedbackArray[3] = (shoulderPos & 0xff);
+    feedbackArray[4] = ((shoulderPos >> 8) & 0xff);
+    feedbackArray[5] = (elbowPos & 0xff);
+    feedbackArray[6] = ((elbowPos  >> 8) & 0xff);
+    feedbackArray[7] = (forearmPos & 0xff);
+    feedbackArray[8] = ((forearmPos >> 8) & 0xff);
 	feedbackArray[9] = ((temperature & 0xff));
 	feedbackArray[10] = ((temperature >> 8) & 0xff);
 	feedbackArray[11] =((humidity & 0xff));
