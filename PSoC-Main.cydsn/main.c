@@ -203,7 +203,6 @@ void resetAll() {
     PWM_Excavator_WriteCompare(SERVO_NEUTRAL);
     
     // init chutes - turn off all
-    chute_en_Write(0);
     chute1a_Write(0);
     chute1b_Write(0);
     
@@ -394,8 +393,8 @@ void init() {
     PWM_BoxLid_Start();
     PWM_BoxLid_WriteCompare(SERVO_NEUTRAL);
     
-    // init chutes - disable and turn off all
-    chute_en_Write(0);
+    // init chutes - always enable and turn off all
+    chute_en_Write(1);
     chute1a_Write(0);
     chute1b_Write(0);
     
@@ -413,6 +412,9 @@ void init() {
     
     chute6a_Write(0);
     chute6b_Write(0);
+    
+    // electromagnet initially off
+    electromagnet_Write(0);
     
     // rc camera initially disabled
     rc_cam_en_Write(0);

@@ -188,17 +188,22 @@ int compRxEventHandler() {
             compRxState = wristtiltlo; // change state
             break;
             
-            // TODO: remove wrist from packet on computer and PSoC
+            // Using wrist tilt low byte for toggling laser on/off
         case wristtiltlo:
-            
+            Payload.wristTiltDest = byte;
             compRxState = wristtilthi; // change state
             break;
-        case wristtilthi:
             
+            // Using wrist tilt high byte for electromagnet on/off
+        case wristtilthi:
+            Payload.wristTiltDest |= byte << 8;
+            electromagnet_Write(byte);
             compRxState = wristspinlo; // change state
             break;
-        case wristspinlo:
             
+            // Using wrist rotate low byte for dynamixel on/off
+        case wristspinlo:
+            Payload.wristSpinDest = byte;
             compRxState = wristspinhi; // change state
             break;
         case wristspinhi:
@@ -217,11 +222,11 @@ int compRxEventHandler() {
         case chutes:
             // byte: box open/close | chute_en | c6 | c5 | c4 | c3 | c2 | c1
             if (byte & 0x40) {
-                chute_en_Write(1);
+                //chute_en_Write(1);
                 control_chutes(byte);
             }
             else {
-                chute_en_Write(0);
+                //chute_en_Write(0);
             }
             
             // box lid open/close is 8th bit
@@ -332,7 +337,17 @@ void heartbeatEventHandler() {
 
     // Ask Arduino for science sensor data
     UART_ScienceMCU_PutChar(0xae); // preamble
-    UART_ScienceMCU_PutChar(2); // laser on
+    UART_ScienceMCU_PutChar(1); // get feedback
+    if (Payload.wristSpinDest & 1) { // if this is set, turn dynamixels off
+        UART_ScienceMCU_PutChar(5); // command to turn off dynamixels
+    }
+    else if (Payload.wristTiltDest & 1) { // fire laser?
+        UART_ScienceMCU_PutChar(2);
+
+    }
+    else {
+        UART_ScienceMCU_PutChar(0);
+    }
     
     // Get Arm feedback:
     // Turret
