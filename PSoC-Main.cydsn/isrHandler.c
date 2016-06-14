@@ -277,7 +277,7 @@ void scienceEventHandler() {
     // Get feedback from science sensors: temperature and humidity
     enum states_e { pre0, pre1, templo, temphi, humlo, humhi };
     static enum states_e state = templo;
-    static int16_t temp = 0; // temporary data storage
+    static uint16_t temp = 0; // temporary data storage
     
     // Read until finished getting all bytes in buffer
     while (UART_ScienceMCU_GetRxBufferSize() || 
@@ -314,7 +314,9 @@ void scienceEventHandler() {
         // Temperature high byte
         case temphi:
             temp |= 0xff00 & (byte << 8);
-            temperature = temp; // now assign temperature to this value
+            if (temp <= 100) {
+                temperature = temp; // now assign temperature to this value
+            }
             state = humlo;
             break;
         // Humidity low byte
@@ -325,7 +327,9 @@ void scienceEventHandler() {
         // Humidity high byte
         case humhi:
             temp |= 0xff00 & (byte << 8);
-            humidity = temp;
+            if (humidity <= 1023) {
+                humidity = temp; // now assign humidity to this value
+            }
             state = pre0;
             break;
         // Shouldn't ever get here
@@ -409,7 +413,9 @@ void updateTurretPos() {
             break;
             case high:
                 temp |= (UART_Turret_GetByte() << 8) & 0xff00;
-                turretPos = temp;
+                if (temp <= 4095) {
+                    turretPos = temp;
+                }
                 state = low;
             break;
             default:
@@ -431,7 +437,9 @@ void updateShoulderPos() {
                 state = high;
             break;
             case high:
-                temp |= (UART_Shoulder_GetByte() << 8) & 0xff00;
+                if (temp <= 4095) {
+                    temp |= (UART_Shoulder_GetByte() << 8) & 0xff00;
+                }
                 shoulderPos = temp;
                 state = low;
             break;
@@ -454,7 +462,9 @@ void updateElbowPos() {
                 state = high;
             break;
             case high:
-                temp |= (UART_Elbow_GetByte() << 8) & 0xff00;
+                if (temp <= 4095) {
+                    temp |= (UART_Elbow_GetByte() << 8) & 0xff00;
+                }
                 elbowPos = temp;
                 state = low;
             break;
@@ -477,7 +487,9 @@ void updateForearmPos() {
                 state = high;
             break;
             case high:
-                temp |= (UART_Forearm_GetByte() << 8) & 0xff00;
+                if (temp <= 4095) {
+                    temp |= (UART_Forearm_GetByte() << 8) & 0xff00;
+                }
                 forearmPos = temp;
                 state = low;
             break;

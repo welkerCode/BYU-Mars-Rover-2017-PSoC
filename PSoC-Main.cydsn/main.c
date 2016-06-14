@@ -98,11 +98,14 @@ void cameraTest();
 // an automated test that periodically sends packets to the psoc slave
 void psocSlaveTest();
 
-// an automated test thaat switchtes the electromagnet on and off
+// an automated test thaat switches the electromagnet on and off
 void electromagnetTest();
 
 // reset all actuators
 void resetAll();
+
+// an automated test that toggles the relay for the dynamixels
+void dynamixelRelayTest();
 
 // initialize
 void init();
@@ -119,6 +122,7 @@ int main() {
         //chuteTest();
         //cameraTest();
         //electromagnetTest();
+        //dynamixelRelayTest();
         eventLoop();
     }
 }
@@ -189,6 +193,114 @@ void eventLoop() {
             }
         }
     }
+}
+
+void init() {
+    // 5 second delay before we start everything up
+    //CyDelay(5000);
+    
+    // Initialize variables
+    events = 0; // no pending events initially
+    LED0_Write(0); // LED off, turns on when we're done initializing
+    resetMode = FALSE;
+    
+    // Enable global interrupts
+    CyGlobalIntEnable;
+    
+    // Initialize and start hardware components:
+    
+    // computer uart
+    UART_Computer_Start();
+    Comp_RX_ISR_StartEx(CompRxISR);
+    
+    // drive
+    Clock_PWM_Start();
+    PWM_Drive_Start();
+    PWM_Drive_WriteCompare1(SERVO_NEUTRAL);
+    PWM_Drive_WriteCompare2(SERVO_NEUTRAL);
+    
+    // video
+    PWM_Video_Start();
+    PWM_Video_WriteCompare1(VIDEO1);
+    PWM_Video_WriteCompare2(VIDEO1);
+    
+    // clock for all other uart modules
+    UARTClk_Start();
+    
+    // turret
+    UART_Turret_Start();
+    TurretRxIsr_StartEx(TurretRxISR);
+    pololuControl_turnMotorOff(POLOLUCONTROL_TURRET);
+    
+    // shoulder uart
+    UART_Shoulder_Start();
+    ShoulderRxIsr_StartEx(ShoulderRxISR);
+    pololuControl_turnMotorOff(POLOLUCONTROL_SHOULDER);
+    
+    // elbow uart
+    UART_Elbow_Start();
+    ElbowRxIsr_StartEx(ElbowRxISR);
+    pololuControl_turnMotorOff(POLOLUCONTROL_ELBOW);
+    
+    // forearm uart
+    UART_Forearm_Start();
+    ForearmRxIsr_StartEx(ForearmRxISR);
+    pololuControl_turnMotorOff(POLOLUCONTROL_FOREARM);
+    
+    // science uart
+    UART_ScienceMCU_Start();
+    ScienceRxIsr_StartEx(ScienceRxISR);
+    
+    // camera pan/tilt servo
+    PWM_PanTilt_Start();
+    PWM_PanTilt_WriteCompare1(SERVO_NEUTRAL);
+    PWM_PanTilt_WriteCompare2(SERVO_NEUTRAL);
+    
+    // hand (don't move)
+    hand_a_Write(0);
+    hand_b_Write(0);
+    
+    // excavator
+    PWM_Excavator_Start();
+    PWM_Excavator_WriteCompare(SERVO_NEUTRAL); // excavator
+    
+    // Heartbeat ISR
+    heartbeatIsr_StartEx(HeartbeatISR);
+    
+    // sample box pwm
+    PWM_BoxLid_Start();
+    PWM_BoxLid_WriteCompare(SERVO_NEUTRAL);
+    
+    // init chutes - always enable and turn off all
+    chute_en_Write(1);
+    chute1a_Write(0);
+    chute1b_Write(0);
+    
+    chute2a_Write(0);
+    chute2b_Write(0);
+
+    chute3a_Write(0);
+    chute3b_Write(0);
+    
+    chute4a_Write(0);
+    chute4b_Write(0);
+    
+    chute5a_Write(0);
+    chute5b_Write(0);
+    
+    chute6a_Write(0);
+    chute6b_Write(0);
+    
+    // dynamixel relay
+    dynamixel_relay_Write(1);
+    
+    // electromagnet initially off
+    electromagnet_Write(0);
+    
+    // rc camera initially disabled
+    rc_cam_en_Write(0);
+    
+    LED0_Write(1); // done initializing
 }
 
 // turns off arm motors and resets servos to neutral position.
@@ -321,111 +433,6 @@ void shovelTest() {
     }
 }
 
-void init() {
-        // 5 second delay before we start everything up
-    CyDelay(5000);
-    
-    // Initialize variables
-    events = 0; // no pending events initially
-    LED0_Write(0); // LED off, turns on when we're done initializing
-    resetMode = FALSE;
-    
-    // Enable global interrupts
-    CyGlobalIntEnable;
-    
-    // Initialize and start hardware components:
-    
-    // computer uart
-    UART_Computer_Start();
-    Comp_RX_ISR_StartEx(CompRxISR);
-    
-    // drive
-    Clock_PWM_Start();
-    PWM_Drive_Start();
-    PWM_Drive_WriteCompare1(SERVO_NEUTRAL);
-    PWM_Drive_WriteCompare2(SERVO_NEUTRAL);
-    
-    // video
-    PWM_Video_Start();
-    PWM_Video_WriteCompare1(VIDEO1);
-    PWM_Video_WriteCompare2(VIDEO1);
-    
-    // clock for all other uart modules
-    UARTClk_Start();
-    
-    // turret
-    UART_Turret_Start();
-    TurretRxIsr_StartEx(TurretRxISR);
-    pololuControl_turnMotorOff(POLOLUCONTROL_TURRET);
-    
-    // shoulder uart
-    UART_Shoulder_Start();
-    ShoulderRxIsr_StartEx(ShoulderRxISR);
-    pololuControl_turnMotorOff(POLOLUCONTROL_SHOULDER);
-    
-    // elbow uart
-    UART_Elbow_Start();
-    ElbowRxIsr_StartEx(ElbowRxISR);
-    pololuControl_turnMotorOff(POLOLUCONTROL_ELBOW);
-    
-    // forearm uart
-    UART_Forearm_Start();
-    ForearmRxIsr_StartEx(ForearmRxISR);
-    pololuControl_turnMotorOff(POLOLUCONTROL_FOREARM);
-    
-    // science uart
-    UART_ScienceMCU_Start();
-    ScienceRxIsr_StartEx(ScienceRxISR);
-    
-    // camera pan/tilt servo
-    PWM_PanTilt_Start();
-    PWM_PanTilt_WriteCompare1(SERVO_NEUTRAL);
-    PWM_PanTilt_WriteCompare2(SERVO_NEUTRAL);
-    
-    // hand (don't move)
-    hand_a_Write(0);
-    hand_b_Write(0);
-    
-    // excavator
-    PWM_Excavator_Start();
-    PWM_Excavator_WriteCompare(SERVO_NEUTRAL); // excavator
-    
-    // Heartbeat ISR
-    heartbeatIsr_StartEx(HeartbeatISR);
-    
-    // sample box pwm
-    PWM_BoxLid_Start();
-    PWM_BoxLid_WriteCompare(SERVO_NEUTRAL);
-    
-    // init chutes - always enable and turn off all
-    chute_en_Write(1);
-    chute1a_Write(0);
-    chute1b_Write(0);
-    
-    chute2a_Write(0);
-    chute2b_Write(0);
-
-    chute3a_Write(0);
-    chute3b_Write(0);
-    
-    chute4a_Write(0);
-    chute4b_Write(0);
-    
-    chute5a_Write(0);
-    chute5b_Write(0);
-    
-    chute6a_Write(0);
-    chute6b_Write(0);
-    
-    // electromagnet initially off
-    electromagnet_Write(0);
-    
-    // rc camera initially disabled
-    rc_cam_en_Write(0);
-    
-    LED0_Write(1); // done initializing
-}
-
 // an automated test to switch between camera feeds
 void cameraTest() {
     while(1) {
@@ -485,6 +492,18 @@ void electromagnetTest() {
         electromagnet_Write(!electromagnet_Read());
         TOGGLE_LED0;
         CyDelay(5000);
+    }
+}
+
+// an automated test that toggles the relay for the dynamixels
+void dynamixelRelayTest() {
+    while(1) {
+        CyDelay(5000);
+        TOGGLE_LED0;
+        dynamixel_relay_Write(0);
+        CyDelay(5000);
+        TOGGLE_LED0;
+        dynamixel_relay_Write(1);
     }
 }
 

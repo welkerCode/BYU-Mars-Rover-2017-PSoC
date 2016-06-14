@@ -9,6 +9,7 @@
 <projects>
 <v>.\PSoC-Slave.cydsn\PSoC-Slave.cyprj</v>
 <v>.\PSoC-Main.cydsn\PSoC-Main.cyprj</v>
+<v>.\psoc4-relay-test.cydsn\psoc4-relay-test.cyprj</v>
 </projects>
 <workspace_id v="4a969626-22fe-4979-b88d-507b3bf71c14" />
 <WriteAppVersionLastSavedWith v="3.3.0.7343" />
