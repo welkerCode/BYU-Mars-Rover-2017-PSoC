@@ -24,27 +24,24 @@ volatile uint32_t events = 0;
 // These are the last positions we wrote to the motors
 static struct Payload {
     uint16_t leftWheels;
+    //uint16_t leftWheelsDir;
     uint16_t rightWheels;
-    uint16_t cameraPan;
-    uint16_t cameraTilt;
-    uint8_t cameraNum;
+    //uint16_t rightWheelsDir;
+    uint16_t cameraPan;		//Remove
+    uint16_t cameraTilt;  	//Remove
+    uint8_t cameraNum;		//Remove
     uint8_t chutes;
     uint16_t turretDest;
     uint16_t shoulderDest;
     uint16_t elbowDest;
     uint16_t forearmDest;
-    uint16_t wristTiltDest;
-    uint16_t wristSpinDest;
+    uint16_t wristTiltDest;	//Remove???
+    uint16_t wristSpinDest;	//Remove???
     uint8_t handDest;
-    uint8_t miscSwitches; // byte: xxxx x laser | electromagnet | dynamixels on/off
-    uint16_t shovel;
+    uint8_t miscSwitches; // byte: xxxx x laser | electromagnet | dynamixels on/off //Remove???
+    uint16_t shovel;		//Remove???
 } Payload;
-/*
-static struct {
-    uint8_t camSelect;
-    uint8_t chuteSelect;
-} PSoC_Slave_Payload;
-*/
+
 // Arm positions
 // These are the most recent positions received as feedback from the motors
 // We really don't need feedback from the hand since it's just open/close.
@@ -57,7 +54,7 @@ volatile uint16_t forearmPos;
 volatile int16_t temperature = 0;
 volatile int16_t humidity = 0;
 
-#define POSITION_PAYLOAD_SIZE (13) // 1 start byte, 2 bytes per joint, 6 joints
+#define POSITION_PAYLOAD_SIZE (13) // 1 start byte, 2 bytes per joint, 6 joints //PROBABLY CHANGE TO 9, remove all wrist data
 // The positions are stored in little endian format - low byte first, then
 // high byte, in order from joints closest to the rover outward
 // [turretlo, turrethi, shoulderlo, shoulderhi, elbowlo, elbowhi,
@@ -67,9 +64,9 @@ static uint8_t feedbackArray[POSITION_PAYLOAD_SIZE];
 // State machine states to receive commands from computer
 // The state machine is defined in the function compRxEventHandler
 #define PREAMBLE0 0xEA
-static enum compRxStates_e { pre0, leftlo, lefthi, rightlo, righthi, campanlo,
-    campanhi, camtiltlo, camtilthi, camSelect, turretlo, turrethi, 
-    shoulderlo, shoulderhi, elbowlo, elbowhi, forearmlo, forearmhi,
+static enum compRxStates_e { pre0, leftlo, lefthi, rightlo, righthi, campanlo, //Remove the following states: campanlo/hi camtiltlo/hi, camSelect
+    campanhi, camtiltlo, camtilthi, camSelect, turretlo, turrethi, 		//Wristtilt/spin/lo/hi, miscSwitch???, shovello/hi
+    shoulderlo, shoulderhi, elbowlo, elbowhi, forearmlo, forearmhi,		//Add leftDirlo/hi, rightDirlo/hi
     wristtiltlo, wristtilthi, wristspinlo, wristspinhi, 
     handlo, miscSwitch, chutes, shovello, shovelhi } compRxState;
 
@@ -500,6 +497,7 @@ void updateForearmPos() {
     }
 }
 
+//Remove!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 void selectCameras(uint8_t byte) {
     // byte: rc_en | x | v2[1:0] | x | x | v1[1:0]
     // rc_en is rc camera enable
@@ -586,6 +584,8 @@ void control_chutes(uint8_t byte) {
         chute4a_Write(0);
         chute4b_Write(1);
     }
+	
+	//Remove!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // chute 5
     if (byte & 0x10) // close
     {
@@ -597,6 +597,7 @@ void control_chutes(uint8_t byte) {
         chute5a_Write(0);
         chute5b_Write(1);
     }
+	//Remove!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // chute 6
     if (byte & 0x20) // close
     {
