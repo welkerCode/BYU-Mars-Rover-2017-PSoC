@@ -384,14 +384,17 @@ void heartbeatEventHandler() {
 // Control hand
 void driveHand(uint16_t pos) {
     if (pos == 1) { // open (retract linear actuators)
+	//here, set the enable pin for the hand
         hand_a_Write(1);
         hand_b_Write(0);
     }
     else if (pos == 2) { // close (extend linear actuators)
+	//here, set the enable pin for the hand
         hand_b_Write(1);
         hand_a_Write(0);
     }
     else { // don't move
+	//here, clear the enable pin for the hand
         hand_a_Write(0);
         hand_b_Write(0);
     }
